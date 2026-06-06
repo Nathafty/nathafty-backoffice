@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__nathafty-db__query",
+      "Bash(node scripts/setup-test-data.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/setup-test-data.mjs)"
+    ]
+  }
+}
