@@ -5,7 +5,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { getServiceClient } from "@/lib/supabase/service";
 import { errors } from "./errors";
 
-export type UserRole = "client" | "driver" | "admin" | "super_admin";
+export type UserRole = "customer" | "client" | "driver" | "admin" | "super_admin";
 
 /** Contexte applicatif injecté dans chaque handler par withRoute. */
 export interface AppContext {

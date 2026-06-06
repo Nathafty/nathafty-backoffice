@@ -1,6 +1,6 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { generateShortId } from "@/core/lib/id";
 import { complaintRepo } from "@/core/repositories/complaintRepo";
 import { householdRepo } from "@/core/repositories/householdRepo";
 import type { CreateComplaintDto } from "@/core/dto/complaint";
@@ -17,7 +17,7 @@ export const complaintService = {
     const ticketNumber = `CMP-${year}-${String(seq).padStart(4, "0")}`;
 
     const complaint = await complaintRepo.insert(db, {
-      id: randomUUID(),
+      id: generateShortId(),
       ticket_number: ticketNumber,
       household_id: householdId,
       household_name: (household as { name?: string }).name ?? null,
