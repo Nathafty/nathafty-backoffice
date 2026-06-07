@@ -1,0 +1,372 @@
+{
+  "info": {
+    "name": "Nathafty — API Backoffice (Flutter)",
+    "_postman_id": "b1f1a8e0-1c2d-4e3a-9f10-natha000api1",
+    "description": "Collection des endpoints de l'API Next.js du backoffice Nathafty, consommés par les apps Flutter **Client** et **Collecteur**.\n\n## Conventions\n- **Base URL** : variable `{{baseUrl}}` (par défaut `http://localhost:3000`, à ajuster selon le port — le serveur a aussi tourné sur `3005`).\n- **Authentification** : header `Authorization: Bearer <jwt>`. Le JWT customer s'obtient via **Auth ▸ Login** (capturé automatiquement dans `{{customerToken}}`). Le JWT collecteur se colle manuellement dans `{{driverToken}}` (voir le dossier Driver).\n- **Réponse succès** : `{ \"data\": ... }`.\n- **Réponse erreur** : `{ \"error\": { \"code\", \"message\" } }` avec le bon status HTTP.\n- **Flux type** : `register` → `login` (token auto) → appels authentifiés customer.\n\n## Codes d'erreur fréquents\n`400 VALIDATION_ERROR` (payload Zod invalide) · `401 UNAUTHORIZED` / `INVALID_CREDENTIALS` · `403 HOUSEHOLD_NOT_LINKED` / `DRIVER_ROLE_REQUIRED` · `404 NOT_FOUND` · `409 PHONE_ALREADY_USED` / `RENEWAL_ALREADY_PENDING` / `HOUSE_ALREADY_PROCESSED`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "noauth" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth (public)",
+      "description": "Endpoints publics (sans token). `register` crée le compte + le ménage ; `login` renvoie la session.",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "POST register — inscription customer",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{customerPhone}}\",\n  \"password\": \"{{customerPassword}}\",\n  \"name\": \"Test Client\",\n  \"address\": \"Tevragh Zeina, Rue 42\",\n  \"whatsapp\": \"+22245678901\",\n  \"district_id\": 1,\n  \"family_size\": 4,\n  \"latitude\": 18.0858,\n  \"longitude\": -15.9785\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/register",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "register" ]
+            },
+            "description": "**Objectif** : self-signup d'un customer. Crée en une opération : le compte Supabase Auth (email dérivé `<8 chiffres>@nathafty.mr`, **auto-confirmé**), la ligne `households` (status `PENDING`), et le rôle `customer`.\n\n**Auth** : aucune.\n\n**Body** :\n- `phone` (string, requis) — numéro mauritanien ; `+222`/espaces tolérés, normalisé en 8 chiffres locaux.\n- `password` (string, requis, min 6).\n- `name` (string, requis).\n- `address?`, `whatsapp?` (string), `district_id?`, `family_size?` (int), `latitude?`, `longitude?` (number).\n\n**Réponse 201** : `{ \"data\": { \"household\": {...}, \"email\": \"45678901@nathafty.mr\" } }`.\n\n**Erreurs** : `400 INVALID_PHONE` / `VALIDATION_ERROR` · `409 PHONE_ALREADY_USED`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST login — connexion customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.access_token) {",
+                  "  pm.environment.set('customerToken', json.data.access_token);",
+                  "  if (json.data.refresh_token) pm.environment.set('refreshToken', json.data.refresh_token);",
+                  "  console.log('customerToken mis à jour depuis /login');",
+                  "} else {",
+                  "  console.warn('Aucun access_token dans la réponse');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{customerPhone}}\",\n  \"password\": \"{{customerPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/login",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "login" ]
+            },
+            "description": "**Objectif** : authentifier un customer par **téléphone + mot de passe**. Le backend dérive l'email `<8 chiffres>@nathafty.mr` et interroge Supabase.\n\n**Auth** : aucune.\n\n**Body** : `{ phone, password }`.\n\n**Réponse 200** : `{ \"data\": { access_token, refresh_token, expires_in, token_type, user: { id } } }`.\nUn **script de test** enregistre automatiquement `access_token` dans `{{customerToken}}` (et `refresh_token` dans `{{refreshToken}}`).\n\n**Erreurs** : `401 INVALID_CREDENTIALS` · `400 INVALID_PHONE`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customer",
+      "description": "Endpoints de l'app Client. **Auth héritée** : `Bearer {{customerToken}}` (rempli par Auth ▸ Login). Chaque requête résout le ménage via `households.user_id = auth.uid()` ; `403 HOUSEHOLD_NOT_LINKED` si le compte n'est pas rattaché à un ménage.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [ { "key": "token", "value": "{{customerToken}}", "type": "string" } ]
+      },
+      "item": [
+        {
+          "name": "GET household — profil du ménage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/household",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "household" ]
+            },
+            "description": "**Objectif** : profil du ménage connecté.\n\n**Réponse 200** : `{ \"data\": { id, name, phone, address, whatsapp, latitude, longitude, district_id, family_size, subscription_type, status, actif_remaining_days, registration_date } }`.\n\n**Erreurs** : `401` · `403 HOUSEHOLD_NOT_LINKED`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST household — mise à jour du profil",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"whatsapp\": \"+22241234567\",\n  \"latitude\": 18.0858,\n  \"longitude\": -15.9785,\n  \"address\": \"Tevragh Zeina, Rue 42\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/household",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "household" ]
+            },
+            "description": "**Objectif** : mise à jour partielle du profil (au moins un champ requis).\n\n**Body (tous optionnels)** : `name`, `address`, `address_details`, `whatsapp`, `latitude`, `longitude`. Les champs `id`/`user_id` ne sont pas modifiables.\n\n**Réponse 200** : le profil mis à jour.\n\n**Erreurs** : `400 VALIDATION_ERROR` (aucun champ) · `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET collections — calendrier des collectes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/collections?from=2025-01-01&to=2026-12-31",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "collections" ],
+              "query": [
+                { "key": "from", "value": "2025-01-01", "description": "Date début (AAAA-MM-JJ), requise" },
+                { "key": "to", "value": "2026-12-31", "description": "Date fin (AAAA-MM-JJ), requise, >= from" }
+              ]
+            },
+            "description": "**Objectif** : collectes du ménage planifiées dans la période, avec statut, preuve photo éventuelle et collecteur.\n\n**Query** : `from`, `to` (AAAA-MM-JJ, requis).\n\n**Réponse 200** : `{ \"data\": [ { id, status, collection_date, proof_photo_url, ..., collections: { title, zone, scheduled_date, drivers: {...} } } ] }`.\n\n**Erreurs** : `400 VALIDATION_ERROR` (dates absentes/invalides) · `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET subscription — abonnement courant + historique",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/subscription",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "subscription" ]
+            },
+            "description": "**Objectif** : abonnement courant (premier `active`, sinon le plus récent) + historique, plan inclus.\n\n**Réponse 200** : `{ \"data\": { current: {...}|null, history: [...] } }`.\n\n**Erreurs** : `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST renewal-request — demande de renouvellement",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": {{planId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/renewal-request",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "renewal-request" ]
+            },
+            "description": "**Objectif** : créer une demande de renouvellement (status `pending`) pour un plan actif.\n\n**Body** : `{ plan_id: int }` (mappé sur `renewal_requests.requested_plan_id`).\n\n**Réponse 201** : la demande créée.\n\n**Erreurs** : `400 PLAN_NOT_FOUND` / `PLAN_INACTIVE` · `409 RENEWAL_ALREADY_PENDING` (demande déjà en attente) · `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET payments — historique des paiements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "payments" ]
+            },
+            "description": "**Objectif** : synthèse paiements du ménage (vue `view_household_payments`) : totaux + `payment_history`.\n\n**Réponse 200** : `{ \"data\": { total_amount, total_paid_amount, total_pending_amount, payment_history: [...] , ... } }`.\n\n**Erreurs** : `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET complaints — mes réclamations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/complaints",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "complaints" ]
+            },
+            "description": "**Objectif** : liste des réclamations du ménage (plus récentes d'abord).\n\n**Réponse 200** : `{ \"data\": [ { id, ticket_number, category, priority, status, description, response, submitted_date, ... } ] }`.\n\n**Erreurs** : `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST complaints — créer une réclamation",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"missed_collection\",\n  \"description\": \"La poubelle n'a pas été ramassée mardi.\",\n  \"photo_url\": \"https://exemple.supabase.co/storage/v1/object/public/complaint-attachments/photo-1.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/complaints",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "complaints" ]
+            },
+            "description": "**Objectif** : créer un ticket de réclamation (génère `id` + `ticket_number` `CMP-AAAA-NNNN`).\n\n**Body** :\n- `category` (requis) ∈ `missed_collection` | `damage` | `billing` | `other`.\n- `description` (string, requis).\n- `photo_url?` (URL) — d'abord uploadée dans Supabase Storage par l'app, puis transmise ici (crée une pièce jointe).\n\n**Réponse 201** : le ticket créé.\n\n**Erreurs** : `400 VALIDATION_ERROR` · `401` · `403`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST device-token — enregistrer le token FCM",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm-device-token-xyz\",\n  \"platform\": \"android\",\n  \"app_flavor\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/device-token",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "device-token" ]
+            },
+            "description": "**Objectif** : enregistrer/mettre à jour le token push de l'appareil (upsert sur `token`). À appeler au login et au refresh du token FCM.\n\n**Body** :\n- `token` (string, requis).\n- `platform` (requis) ∈ `android` | `ios`.\n- `app_flavor?` (string).\n\n**Réponse 201** : `{ \"data\": { registered: true } }`.\n\n**Erreurs** : `400 VALIDATION_ERROR` · `401`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET notifications — liste (non lues)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/notifications?unread=true",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "notifications" ],
+              "query": [
+                { "key": "unread", "value": "true", "description": "true = uniquement les non lues ; absent/false = toutes" }
+              ]
+            },
+            "description": "**Objectif** : notifications de l'utilisateur (plus récentes d'abord).\n\n**Query** : `unread=true` pour ne renvoyer que les non lues.\n\n**Réponse 200** : `{ \"data\": [ { id, type, title, body, data, read_at, created_at } ] }`.\n\n**Erreurs** : `401`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST notifications/{id}/read — marquer comme lue",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/notifications/{{notificationId}}/read",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "customer", "notifications", "{{notificationId}}", "read" ]
+            },
+            "description": "**Objectif** : marquer une notification comme lue (`read_at`).\n\n**Path** : `{{notificationId}}` (entier).\n\n**Réponse 200** : la notification mise à jour.\n\n**Erreurs** : `400` (id invalide) · `401` · `404 NOT_FOUND` (inexistante ou non possédée)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Driver",
+      "description": "Endpoints de l'app Collecteur. **Auth héritée** : `Bearer {{driverToken}}`.\n\n⚠️ Il n'y a **pas** d'endpoint de login collecteur dans cette API : le collecteur s'authentifie en **email/mot de passe directement auprès de Supabase** (`POST {{supabaseUrl}}/auth/v1/token?grant_type=password` avec `apikey: <anon>`). Récupère l'`access_token` et colle-le dans la variable `{{driverToken}}`.\n\nChaque requête exige le rôle `driver` (`403 DRIVER_ROLE_REQUIRED`) et résout `drivers.user_id = auth.uid()`.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [ { "key": "token", "value": "{{driverToken}}", "type": "string" } ]
+      },
+      "item": [
+        {
+          "name": "GET today — tournée du jour",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/today",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "today" ]
+            },
+            "description": "**Objectif** : collectes du collecteur planifiées **aujourd'hui** (`scheduled_date = date du jour`), avec compteurs.\n\n**Réponse 200** : `{ \"data\": [ { id, title, zone, scheduled_date, status, houses_total, houses_done, houses_skipped, houses_pending } ] }`.\n\n**Erreurs** : `401` · `403 DRIVER_ROLE_REQUIRED` / `DRIVER_NOT_LINKED`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET collections/{id} — détail d'une tournée",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/collections/{{collectionId}}",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "collections", "{{collectionId}}" ]
+            },
+            "description": "**Objectif** : détail d'une tournée du collecteur (maisons + ménages).\n\n**Path** : `{{collectionId}}` (entier).\n\n**Réponse 200** : `{ \"data\": { collection: {...}, houses: [ { id, status, households: { name, phone, address, latitude, longitude } } ] } }`.\n\n**Erreurs** : `400` (id invalide) · `401` · `404` (tournée introuvable ou non assignée)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET route/{collectionId}/optimize — itinéraire optimisé",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/route/{{collectionId}}/optimize?lat=18.0858&lng=-15.9785",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "route", "{{collectionId}}", "optimize" ],
+              "query": [
+                { "key": "lat", "value": "18.0858", "description": "Latitude de départ du collecteur (requis)" },
+                { "key": "lng", "value": "-15.9785", "description": "Longitude de départ du collecteur (requis)" }
+              ]
+            },
+            "description": "**Objectif** : ordre de visite optimisé (algorithme Nearest-Neighbor côté serveur, distances Haversine). Aucune persistance.\n\n**Path** : `{{collectionId}}`. **Query** : `lat`, `lng` (position de départ, requis).\n\n**Réponse 200** : `{ \"data\": { collection_id, start, total_distance_m, ordered_houses: [ { house, leg_distance_m, cumulative_m } ], unlocated_houses: [...] } }`.\n\n**Erreurs** : `400` · `401` · `404`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST houses/{id}/complete — valider une collecte",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photo_url\": \"https://exemple.supabase.co/storage/v1/object/public/collection-proofs/house-1.jpg\",\n  \"lat\": 18.0858,\n  \"lng\": -15.9785,\n  \"note\": \"RAS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/houses/{{houseId}}/complete",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "houses", "{{houseId}}", "complete" ]
+            },
+            "description": "**Objectif** : marquer une maison comme **collectée** (`status='done'` + preuve), puis envoyer un push `collection_done` au client (best-effort).\n\n**Path** : `{{houseId}}`. **Body** :\n- `photo_url` (URL, requis) — preuve uploadée au préalable dans Storage.\n- `lat`, `lng` (number, requis) — position au moment de la validation.\n- `note?` (string).\n\n**Réponse 200** : la maison mise à jour.\n\n**Erreurs** : `400` · `401` · `403` (maison hors tournée) · `404` · `409 HOUSE_ALREADY_PROCESSED` (déjà traitée)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST houses/{id}/skip — marquer non collectée",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"absent\",\n  \"note\": \"Personne au domicile\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/houses/{{houseId}}/skip",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "houses", "{{houseId}}", "skip" ]
+            },
+            "description": "**Objectif** : marquer une maison **non collectée** (`status='skipped'` + motif).\n\n**Path** : `{{houseId}}`. **Body** :\n- `reason` (requis) ∈ `absent` | `refus` | `acces_bloque` | `autre`.\n- `note?` (string).\n\n**Réponse 200** : la maison mise à jour.\n\n**Erreurs** : `400 VALIDATION_ERROR` · `401` · `403` · `404` · `409 HOUSE_ALREADY_PROCESSED`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET history — historique des tournées",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/driver/history?from=2026-01-01&to=2026-12-31",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "driver", "history" ],
+              "query": [
+                { "key": "from", "value": "2026-01-01", "description": "Date début (AAAA-MM-JJ), requise" },
+                { "key": "to", "value": "2026-12-31", "description": "Date fin (AAAA-MM-JJ), requise, >= from" }
+              ]
+            },
+            "description": "**Objectif** : tournées passées du collecteur sur une période (avec statut des maisons).\n\n**Query** : `from`, `to` (AAAA-MM-JJ, requis).\n\n**Réponse 200** : `{ \"data\": [ { id, title, scheduled_date, status, houses_to_collect: [ { id, status } ] } ] }`.\n\n**Erreurs** : `400 VALIDATION_ERROR` · `401` · `403`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

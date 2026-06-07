@@ -6,6 +6,39 @@ const SUB_SELECT =
   "subscription_plans(id, code, name, description, price_mru, duration_days, collections_per_week)";
 
 export const subscriptionRepo = {
+  /** Tous les abonnements (admin) : ménage + plan, plus récents d'abord. */
+  async listAll(db: SupabaseClient, filters: { status?: string } = {}) {
+    let q = db
+      .from("subscriptions")
+      .select(`${SUB_SELECT}, households(id, name, phone)`)
+      .order("start_date", { ascending: false });
+    if (filters.status) q = q.eq("status", filters.status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Crée un abonnement (utilisé à l'approbation d'un renouvellement). */
+  async insertSubscription(
+    db: SupabaseClient,
+    input: {
+      household_id: string;
+      plan_id: number;
+      start_date: string;
+      end_date: string;
+      status?: string;
+      payment_id?: number | null;
+    },
+  ) {
+    const { data, error } = await db
+      .from("subscriptions")
+      .insert(input)
+      .select("id, household_id, plan_id, start_date, end_date, status")
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   /** Tous les abonnements d'un ménage (plan inclus), du plus récent au plus ancien. */
   async listByHousehold(db: SupabaseClient, householdId: string) {
     const { data, error } = await db

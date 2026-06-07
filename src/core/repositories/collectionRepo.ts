@@ -59,4 +59,75 @@ export const collectionRepo = {
     if (error) throw error;
     return data ?? [];
   },
+
+  // ---- Admin ----
+
+  /** Toutes les collectes (driver + statut des maisons), filtrables par période/statut. */
+  async listAll(
+    db: SupabaseClient,
+    filters: { from?: string; to?: string; status?: string } = {},
+  ) {
+    let q = db
+      .from("collections")
+      .select(`${COLLECTION_COLUMNS}, drivers(id, name), houses_to_collect(id, status)`)
+      .order("scheduled_date", { ascending: false });
+    if (filters.from) q = q.gte("scheduled_date", filters.from);
+    if (filters.to) q = q.lte("scheduled_date", filters.to);
+    if (filters.status) q = q.eq("status", filters.status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Détail d'une collecte (admin, sans filtre driver). */
+  async byId(db: SupabaseClient, id: number): Promise<CollectionRow | null> {
+    const { data, error } = await db
+      .from("collections")
+      .select(COLLECTION_COLUMNS)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as CollectionRow | null) ?? null;
+  },
+
+  async insert(
+    db: SupabaseClient,
+    input: {
+      title: string;
+      zone?: string | null;
+      scheduled_date: string;
+      end_date?: string | null;
+      driver_id?: number | null;
+    },
+  ): Promise<CollectionRow> {
+    const { data, error } = await db
+      .from("collections")
+      .insert(input)
+      .select(COLLECTION_COLUMNS)
+      .single();
+    if (error) throw error;
+    return data as CollectionRow;
+  },
+
+  async updateById(
+    db: SupabaseClient,
+    id: number,
+    patch: Partial<{
+      title: string;
+      zone: string | null;
+      scheduled_date: string;
+      end_date: string | null;
+      driver_id: number | null;
+      status: string;
+    }>,
+  ): Promise<CollectionRow> {
+    const { data, error } = await db
+      .from("collections")
+      .update(patch)
+      .eq("id", id)
+      .select(COLLECTION_COLUMNS)
+      .single();
+    if (error) throw error;
+    return data as CollectionRow;
+  },
 };

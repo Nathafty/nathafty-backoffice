@@ -4,7 +4,10 @@
       "mcp__nathafty-db__query",
       "Bash(node scripts/setup-test-data.mjs)",
       "Bash(node -e ' *)",
-      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/setup-test-data.mjs)"
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scripts/setup-test-data.mjs)",
+      "Bash(npm install *)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx --yes shadcn@latest add card table badge dialog alert-dialog sheet dropdown-menu input label select textarea tabs sonner separator skeleton tooltip --yes)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 PORT=3005 npx next start)"
     ]
   }
 }

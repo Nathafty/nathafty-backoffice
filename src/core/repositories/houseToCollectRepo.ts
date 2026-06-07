@@ -69,6 +69,28 @@ export const houseToCollectRepo = {
     return (data as unknown as HouseRow | null) ?? null;
   },
 
+  /** Génère les lignes maisons-à-collecter d'une collecte (planification admin). */
+  async insertMany(
+    db: SupabaseClient,
+    rows: { household_id: string; collection_id: number; status: string; collection_date: string | null }[],
+  ): Promise<number> {
+    if (rows.length === 0) return 0;
+    const { error, count } = await db
+      .from("houses_to_collect")
+      .insert(rows, { count: "exact" });
+    if (error) throw error;
+    return count ?? rows.length;
+  },
+
+  /** Supprime les maisons d'une collecte (re-planification). */
+  async deleteByCollection(db: SupabaseClient, collectionId: number): Promise<void> {
+    const { error } = await db
+      .from("houses_to_collect")
+      .delete()
+      .eq("collection_id", collectionId);
+    if (error) throw error;
+  },
+
   /** Met à jour le statut + preuve d'une maison (collecte validée/non collectée). */
   async updateStatus(
     db: SupabaseClient,
