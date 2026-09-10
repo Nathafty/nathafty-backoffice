@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateShortId } from "@/core/lib/id";
 
 const PROFILE_COLUMNS =
-  "id, name, phone, type, address, address_details, whatsapp, latitude, longitude, " +
+  "id, name, phone, type, address, address_details, whatsapp, latitude, longitude, photo_path, " +
   "district_id, family_size, subscription_type, status, actif_remaining_days, registration_date";
 
 export interface HouseholdUpdate {
@@ -13,6 +13,7 @@ export interface HouseholdUpdate {
   whatsapp?: string;
   latitude?: number;
   longitude?: number;
+  photo_path?: string | null;
 }
 
 export interface HouseholdCreate {

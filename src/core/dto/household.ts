@@ -9,6 +9,7 @@ export const updateHouseholdDto = z
     whatsapp: z.string().max(32).optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
+    photo_path: z.string().max(500).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: "Au moins un champ à mettre à jour",
