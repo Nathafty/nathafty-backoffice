@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateShortId } from "@/core/lib/id";
 
 const PROFILE_COLUMNS =
-  "id, name, phone, address, address_details, whatsapp, latitude, longitude, " +
+  "id, name, phone, type, address, address_details, whatsapp, latitude, longitude, " +
   "district_id, family_size, subscription_type, status, actif_remaining_days, registration_date";
 
 export interface HouseholdUpdate {
@@ -19,6 +19,7 @@ export interface HouseholdCreate {
   name: string;
   phone: string;
   user_id: string;
+  type: "MAISON" | "ETABLISSEMENT";
   address?: string;
   whatsapp?: string;
   district_id?: number;
@@ -105,6 +106,12 @@ export const householdRepo = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  /** Rollback best-effort (ex: échec après création lors du self-signup). */
+  async deleteById(db: SupabaseClient, id: string): Promise<void> {
+    const { error } = await db.from("households").delete().eq("id", id);
+    if (error) throw error;
   },
 
   async update(db: SupabaseClient, id: string, patch: HouseholdUpdate) {

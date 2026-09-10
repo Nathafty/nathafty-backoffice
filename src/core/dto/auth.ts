@@ -31,6 +31,7 @@ export const registerCustomerDto = z.object({
   phone: z.string().min(1),
   password: z.string().min(6, "Mot de passe trop court (min 6 caractères)"),
   name: z.string().min(1).max(255),
+  household_type: z.enum(["MAISON", "ETABLISSEMENT"]),
   address: z.string().max(2000).optional(),
   whatsapp: z.string().max(20).optional(),
   district_id: z.number().int().positive().optional(),

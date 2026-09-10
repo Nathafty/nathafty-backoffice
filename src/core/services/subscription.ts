@@ -1,10 +1,16 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { subscriptionRepo } from "@/core/repositories/subscriptionRepo";
+import { subscriptionPlanRepo } from "@/core/repositories/subscriptionPlanRepo";
 import { errors } from "@/core/http/errors";
 import type { RenewalRequestDto } from "@/core/dto/subscription";
 
 export const subscriptionService = {
+  /** Catalogue des plans actifs, pour le choix de renouvellement côté client. */
+  async listActivePlans(db: SupabaseClient) {
+    return subscriptionPlanRepo.listActive(db);
+  },
+
   /** Abonnement courant (premier 'active', sinon le plus récent) + historique complet. */
   async getCurrentAndHistory(db: SupabaseClient, householdId: string) {
     const history = await subscriptionRepo.listByHousehold(db, householdId);

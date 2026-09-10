@@ -25,6 +25,17 @@ export const subscriptionPlanRepo = {
     return (data ?? []) as PlanRow[];
   },
 
+  /** Catalogue visible côté client (app/PWA) : plans actifs uniquement. */
+  async listActive(db: SupabaseClient) {
+    const { data, error } = await db
+      .from("subscription_plans")
+      .select(COLUMNS)
+      .eq("is_active", true)
+      .order("price_mru", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as PlanRow[];
+  },
+
   async byId(db: SupabaseClient, id: number): Promise<PlanRow | null> {
     const { data, error } = await db.from("subscription_plans").select(COLUMNS).eq("id", id).maybeSingle();
     if (error) throw error;

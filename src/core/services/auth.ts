@@ -38,12 +38,14 @@ export const authService = {
       throw errors.internal(msg || "Création du compte échouée");
     }
     const userId = created.user.id;
+    let householdId: string | undefined;
 
     try {
       const household = await householdRepo.create(db, {
         name: dto.name,
         phone: phone8,
         user_id: userId,
+        type: dto.household_type,
         address: dto.address,
         whatsapp: dto.whatsapp,
         district_id: dto.district_id,
@@ -51,10 +53,12 @@ export const authService = {
         latitude: dto.latitude,
         longitude: dto.longitude,
       });
-      await userRoleRepo.setRole(db, userId, "customer");
+      householdId = (household as unknown as { id: string }).id;
+      await userRoleRepo.setRole(db, userId, "client");
       return { household, email };
     } catch (err) {
-      // Rollback best-effort : éviter un compte auth orphelin.
+      // Rollback best-effort : éviter un compte auth et un ménage orphelins.
+      if (householdId) await householdRepo.deleteById(db, householdId).catch(() => {});
       await db.auth.admin.deleteUser(userId).catch(() => {});
       throw err;
     }
