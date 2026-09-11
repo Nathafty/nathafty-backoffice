@@ -41,8 +41,8 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Clients",
     items: [
-      { href: "/admin/households", label: "Ménages", icon: Home, comingSoon: true },
-      { href: "/admin/complaints", label: "Réclamations", icon: MessageCircleWarning, comingSoon: true },
+      { href: "/admin/households", label: "Ménages", icon: Home },
+      { href: "/admin/complaints", label: "Réclamations", icon: MessageCircleWarning },
       { href: "/admin/subscriptions", label: "Abonnements", icon: BadgeCheck },
     ],
   },
@@ -50,7 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Ressources",
     items: [
       { href: "/admin/drivers", label: "Collecteurs", icon: Users },
-      { href: "/admin/fleet", label: "Véhicules & Districts", icon: MapPinned, comingSoon: true },
+      { href: "/admin/fleet", label: "Véhicules & Districts", icon: MapPinned },
     ],
   },
   {

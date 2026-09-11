@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronsLeft, ChevronsRight, Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,8 +17,13 @@ function readStoredCollapsed(): boolean {
 
 /** Sidebar desktop (≥ lg) : repliable en icônes seules, état persisté en localStorage. */
 export function SidebarShell() {
-  // Lecture synchrone (lazy initializer) plutôt qu'un useEffect + setState, qui provoquerait un rendu en cascade.
-  const [collapsed, setCollapsed] = useState(readStoredCollapsed);
+  // Démarre toujours déplié pour que le premier rendu client corresponde au HTML rendu serveur
+  // (le serveur n'a pas accès à localStorage) ; l'état persisté est appliqué après le montage.
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(readStoredCollapsed());
+  }, []);
 
   function toggle() {
     setCollapsed((prev) => {
@@ -30,7 +35,6 @@ export function SidebarShell() {
 
   return (
     <aside
-      suppressHydrationWarning
       className={cn(
         "hidden shrink-0 flex-col border-r bg-sidebar transition-[width] duration-150 lg:flex",
         collapsed ? "w-16" : "w-64",

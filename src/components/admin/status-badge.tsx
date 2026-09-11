@@ -36,6 +36,15 @@ const MAP: Record<string, { label: string; variant: Variant }> = {
   paid: { label: "Payé", variant: "success" },
   overdue: { label: "En retard", variant: "danger" },
   expired: { label: "Expiré", variant: "neutral" },
+  // complaints.status
+  open: { label: "Ouverte", variant: "info" },
+  in_progress: { label: "En cours", variant: "warning" },
+  resolved: { label: "Résolue", variant: "success" },
+  closed: { label: "Fermée", variant: "neutral" },
+  // complaints.priority
+  low: { label: "Faible", variant: "neutral" },
+  medium: { label: "Moyenne", variant: "warning" },
+  high: { label: "Haute", variant: "danger" },
 };
 
 export function StatusBadge({ status }: { status: string | null | undefined }) {

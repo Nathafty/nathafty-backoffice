@@ -6,6 +6,21 @@ const PROFILE_COLUMNS =
   "id, name, phone, type, address, address_details, whatsapp, latitude, longitude, photo_path, " +
   "district_id, family_size, subscription_type, status, actif_remaining_days, registration_date";
 
+const LIST_COLUMNS =
+  "id, name, phone, type, district_id, subscription_type, status, actif_remaining_days, registration_date";
+
+export interface HouseholdListRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  type: "MAISON" | "ETABLISSEMENT";
+  district_id: number | null;
+  subscription_type: string | null;
+  status: string | null;
+  actif_remaining_days: number;
+  registration_date: string | null;
+}
+
 export interface HouseholdUpdate {
   name?: string;
   address?: string;
@@ -30,6 +45,16 @@ export interface HouseholdCreate {
 }
 
 export const householdRepo = {
+  /** Liste admin (tous statuts) — colonnes allégées pour le tableau. */
+  async listAll(db: SupabaseClient): Promise<HouseholdListRow[]> {
+    const { data, error } = await db
+      .from("households")
+      .select(LIST_COLUMNS)
+      .order("registration_date", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as HouseholdListRow[];
+  },
+
   async getById(db: SupabaseClient, id: string) {
     const { data, error } = await db
       .from("households")
