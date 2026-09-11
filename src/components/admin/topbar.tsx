@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Leaf, ChevronRight } from "lucide-react";
+import { Menu, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { SidebarNav } from "./sidebar-nav";
 import { NAV_ITEMS } from "./nav-items";
+import { Logo } from "./logo";
 
 interface Crumb {
   label: string;
@@ -42,8 +43,8 @@ export function Topbar({ title }: { title?: string }) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
-          <SheetTitle className="flex items-center gap-2 border-b px-4 py-3 text-base font-semibold">
-            <Leaf className="size-5 text-emerald-600" /> Nathafty
+          <SheetTitle className="flex items-center gap-2.5 border-b px-4 py-3 text-base font-semibold">
+            <Logo size={28} /> Nathafty
           </SheetTitle>
           <SidebarNav onNavigate={() => setOpen(false)} />
         </SheetContent>

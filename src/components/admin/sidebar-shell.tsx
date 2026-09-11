@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronsLeft, ChevronsRight, Leaf, LogOut } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarNav } from "./sidebar-nav";
+import { Logo } from "./logo";
 import { logoutAction } from "@/app/admin/logout-action";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +41,8 @@ export function SidebarShell() {
         collapsed ? "w-16" : "w-64",
       )}
     >
-      <div className="flex h-14 items-center gap-2 border-b px-4 text-base font-semibold text-sidebar-foreground">
-        <Leaf className="size-5 shrink-0 text-emerald-600" aria-hidden />
+      <div className="flex h-14 items-center gap-2.5 border-b px-4 text-base font-semibold text-sidebar-foreground">
+        <Logo size={32} />
         {!collapsed && <span>Nathafty</span>}
       </div>
       <div className="flex-1 overflow-y-auto">
