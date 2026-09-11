@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronsLeft, ChevronsRight, Leaf } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SidebarNav } from "./sidebar-nav";
+import { logoutAction } from "@/app/admin/logout-action";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "nathafty-admin-sidebar-collapsed";
@@ -41,17 +43,47 @@ export function SidebarShell() {
       <div className="flex-1 overflow-y-auto">
         <SidebarNav collapsed={collapsed} />
       </div>
-      <div className={cn("flex items-center border-t p-2", collapsed ? "justify-center" : "justify-between px-3")}>
+      <div className={cn("flex items-center gap-1 border-t p-2", collapsed ? "flex-col" : "justify-between px-3")}>
         {!collapsed && <p className="text-xs text-muted-foreground">Backoffice admin</p>}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggle}
-          aria-label={collapsed ? "Déplier la navigation" : "Replier la navigation"}
-          className="focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        >
-          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          <form action={logoutAction}>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Se déconnecter"
+                    className="focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                  >
+                    <LogOut className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Se déconnecter</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                type="submit"
+                variant="ghost"
+                size="icon"
+                aria-label="Se déconnecter"
+                className="focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              >
+                <LogOut className="size-4" />
+              </Button>
+            )}
+          </form>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            aria-label={collapsed ? "Déplier la navigation" : "Replier la navigation"}
+            className="focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          >
+            {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+          </Button>
+        </div>
       </div>
     </aside>
   );
