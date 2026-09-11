@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Users } from "lucide-react";
 import { DataTable } from "@/components/admin/data-table";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -68,6 +69,26 @@ function RowActions({ row }: { row: DriverRow }) {
   );
 }
 
+function DriverCard({ row }: { row: DriverRow }) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link href={`/admin/drivers/${row.id}`} className="font-medium hover:underline">
+            {row.name}
+          </Link>
+          <p className="text-sm text-muted-foreground">{row.phone ?? "—"}</p>
+        </div>
+        <RowActions row={row} />
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">NNI : {row.nni ?? "—"}</span>
+        <StatusBadge status={row.status} />
+      </div>
+    </div>
+  );
+}
+
 const columns: ColumnDef<DriverRow>[] = [
   {
     accessorKey: "name",
@@ -86,6 +107,14 @@ const columns: ColumnDef<DriverRow>[] = [
 
 export function DriversTable({ data }: { data: DriverRow[] }) {
   return (
-    <DataTable columns={columns} data={data} searchPlaceholder="Rechercher un collecteur…" emptyMessage="Aucun collecteur." />
+    <DataTable
+      columns={columns}
+      data={data}
+      searchPlaceholder="Rechercher un collecteur…"
+      emptyMessage={
+        <EmptyState title="Aucun collecteur" description="Ajoutez votre premier collecteur pour commencer." icon={Users} />
+      }
+      renderCard={(row) => <DriverCard row={row} />}
+    />
   );
 }

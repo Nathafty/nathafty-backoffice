@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Truck } from "lucide-react";
 import { DataTable } from "@/components/admin/data-table";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -71,6 +72,32 @@ function RowActions({ row }: { row: CollectionListItem }) {
   );
 }
 
+function CollectionCard({ row }: { row: CollectionListItem }) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link href={`/admin/collections/${row.id}`} className="font-medium hover:underline">
+            {row.title}
+          </Link>
+          <p className="text-sm text-muted-foreground">{formatDate(row.scheduled_date)}</p>
+        </div>
+        <RowActions row={row} />
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <span>{row.zone ?? "—"}</span>
+        <span>{row.driver_name ?? "—"}</span>
+        <span>
+          {row.houses_done}/{row.houses_total} maisons
+        </span>
+      </div>
+      <div className="mt-3">
+        <StatusBadge status={row.status} />
+      </div>
+    </div>
+  );
+}
+
 const columns: ColumnDef<CollectionListItem>[] = [
   {
     accessorKey: "title",
@@ -99,7 +126,10 @@ export function CollectionsTable({ data }: { data: CollectionListItem[] }) {
       columns={columns}
       data={data}
       searchPlaceholder="Rechercher une collecte…"
-      emptyMessage="Aucune collecte planifiée."
+      emptyMessage={
+        <EmptyState title="Aucune collecte planifiée" description="Planifiez une nouvelle collecte pour la voir apparaître ici." icon={Truck} />
+      }
+      renderCard={(row) => <CollectionCard row={row} />}
     />
   );
 }

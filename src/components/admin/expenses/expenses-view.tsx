@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Wallet } from "lucide-react";
 import { DataTable } from "@/components/admin/data-table";
+import { EmptyState } from "@/components/admin/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -120,6 +121,37 @@ export function ExpensesView({
     },
   ];
 
+  function renderCard(row: ExpenseItem) {
+    return (
+      <div className="rounded-md border bg-card p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-medium">{CATEGORY_LABEL[row.category] ?? row.category}</p>
+            <p className="text-sm text-muted-foreground">{formatDate(row.expense_date)}</p>
+          </div>
+          <span className="font-medium whitespace-nowrap">{formatMru(row.amount_mru)}</span>
+        </div>
+        {row.description && <p className="mt-2 text-sm text-muted-foreground">{row.description}</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <span>{row.vehicle_label ?? "—"}</span>
+          <span>{row.driver_name ?? "—"}</span>
+        </div>
+        <div className="mt-3 flex justify-end gap-1">
+          <ExpenseDialog
+            expense={row}
+            options={options}
+            trigger={
+              <Button variant="ghost" size="icon" aria-label="Éditer">
+                <Pencil className="size-4" />
+              </Button>
+            }
+          />
+          <DeleteButton id={row.id} />
+        </div>
+      </div>
+    );
+  }
+
   if (tableMissing) {
     return (
       <Card>
@@ -167,7 +199,12 @@ export function ExpensesView({
         />
       </div>
 
-      <DataTable columns={columns} data={filtered} emptyMessage="Aucune dépense." />
+      <DataTable
+        columns={columns}
+        data={filtered}
+        emptyMessage={<EmptyState title="Aucune dépense" description="Enregistrez une dépense pour commencer le suivi." icon={Wallet} />}
+        renderCard={renderCard}
+      />
     </div>
   );
 }

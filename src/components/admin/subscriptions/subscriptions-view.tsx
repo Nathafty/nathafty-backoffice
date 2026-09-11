@@ -1,9 +1,11 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { RefreshCw, BadgeCheck, Tag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/admin/data-table";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
 import { formatDate, formatMru } from "@/lib/format";
 import { RenewalActions } from "./renewal-actions";
 import { PlanDialog } from "./plan-dialog";
@@ -44,6 +46,68 @@ const planColumns: ColumnDef<PlanRow>[] = [
   { id: "actions", cell: ({ row }) => <div className="flex justify-end"><PlanDialog plan={row.original} /></div> },
 ];
 
+function RenewalCard({ row }: { row: RenewalListItem }) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium">{row.household_name ?? row.household_id}</p>
+          <p className="text-sm text-muted-foreground">{row.plan_name ?? "—"}</p>
+        </div>
+        <StatusBadge status={row.status} />
+      </div>
+      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+        <span>{formatMru(row.price_mru)}</span>
+        <span>{formatDate(row.requested_at)}</span>
+      </div>
+      {row.status === "pending" && (
+        <div className="mt-3 flex justify-end">
+          <RenewalActions id={row.id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubscriptionCard({ row }: { row: SubscriptionListItem }) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-medium">{row.household_name ?? "—"}</p>
+        <StatusBadge status={row.status} />
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">{row.plan_name ?? "—"}</p>
+      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+        <span>Du {formatDate(row.start_date)}</span>
+        <span>au {formatDate(row.end_date)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({ row }: { row: PlanRow }) {
+  return (
+    <div className="rounded-md border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium">{row.name}</p>
+          <p className="text-sm text-muted-foreground">{row.code}</p>
+        </div>
+        <StatusBadge status={row.is_active ? "active" : "expired"} />
+      </div>
+      <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+        <span>{formatMru(row.price_mru)}</span>
+        <span>
+          {row.duration_days} j · {row.collections_per_week} collectes/sem.
+        </span>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <PlanDialog plan={row} />
+      </div>
+    </div>
+  );
+}
+
 export function SubscriptionsView({
   renewals,
   subscriptions,
@@ -65,18 +129,34 @@ export function SubscriptionsView({
       </TabsList>
 
       <TabsContent value="renewals" className="mt-4">
-        <DataTable columns={renewalColumns} data={renewals} emptyMessage="Aucune demande de renouvellement." />
+        <DataTable
+          columns={renewalColumns}
+          data={renewals}
+          emptyMessage={<EmptyState title="Aucune demande de renouvellement" icon={RefreshCw} />}
+          renderCard={(row) => <RenewalCard row={row} />}
+        />
       </TabsContent>
 
       <TabsContent value="subs" className="mt-4">
-        <DataTable columns={subColumns} data={subscriptions} searchPlaceholder="Rechercher…" emptyMessage="Aucun abonnement." />
+        <DataTable
+          columns={subColumns}
+          data={subscriptions}
+          searchPlaceholder="Rechercher…"
+          emptyMessage={<EmptyState title="Aucun abonnement" icon={BadgeCheck} />}
+          renderCard={(row) => <SubscriptionCard row={row} />}
+        />
       </TabsContent>
 
       <TabsContent value="plans" className="mt-4 space-y-3">
         <div className="flex justify-end">
           <PlanDialog />
         </div>
-        <DataTable columns={planColumns} data={plans} emptyMessage="Aucun plan." />
+        <DataTable
+          columns={planColumns}
+          data={plans}
+          emptyMessage={<EmptyState title="Aucun plan" description="Créez un plan pour l'ajouter au catalogue." icon={Tag} />}
+          renderCard={(row) => <PlanCard row={row} />}
+        />
       </TabsContent>
     </Tabs>
   );

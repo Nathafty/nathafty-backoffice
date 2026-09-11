@@ -69,7 +69,7 @@ export function DriverDialog({ driver, trigger }: { driver?: DriverRow; trigger:
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Modifier le collecteur" : "Nouveau collecteur"}</DialogTitle>
           <DialogDescription>
@@ -95,7 +95,7 @@ export function DriverDialog({ driver, trigger }: { driver?: DriverRow; trigger:
               </div>
             </>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="d-phone">Téléphone</Label>
               <Input id="d-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} />

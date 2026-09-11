@@ -80,7 +80,7 @@ export function PlanDialog({ plan }: { plan?: PlanRow }) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Modifier le plan" : "Nouveau plan"}</DialogTitle>
           <DialogDescription>Catalogue des abonnements (prix en MRU, durée en jours).</DialogDescription>
@@ -100,7 +100,7 @@ export function PlanDialog({ plan }: { plan?: PlanRow }) {
             <Label htmlFor="desc">Description</Label>
             <Textarea id="desc" value={form.description} onChange={(e) => set("description", e.target.value)} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="price">Prix (MRU) *</Label>
               <Input id="price" type="number" min="0" value={form.price_mru} onChange={(e) => set("price_mru", e.target.value)} required />
@@ -115,7 +115,7 @@ export function PlanDialog({ plan }: { plan?: PlanRow }) {
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-emerald-600" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
+            <input type="checkbox" className="size-4 accent-secondary" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} />
             Plan actif
           </label>
           <DialogFooter>

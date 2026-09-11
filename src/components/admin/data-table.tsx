@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -22,23 +22,27 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   /** Active une barre de recherche globale. */
   searchPlaceholder?: string;
-  emptyMessage?: string;
+  emptyMessage?: ReactNode;
   pageSize?: number;
+  /** Rendu carte pour un écran étroit (< sm) : remplace le tableau par une liste de cartes empilées. */
+  renderCard?: (row: TData) => ReactNode;
 }
 
-/** Table générique : recherche globale, tri, pagination. Réutilisée par tous les modules. */
+/** Table générique : recherche globale, tri, pagination, vue cards en dessous de `sm`. Réutilisée par tous les modules. */
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchPlaceholder,
   emptyMessage = "Aucune donnée.",
   pageSize = 10,
+  renderCard,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -71,7 +75,19 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="rounded-md border bg-card">
+      {renderCard && (
+        <div className="flex flex-col gap-3 sm:hidden">
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => <div key={row.id}>{renderCard(row.original)}</div>)
+          ) : (
+            <div className="rounded-md border bg-card px-4 text-center text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={cn("overflow-x-auto rounded-md border bg-card", renderCard && "hidden sm:block")}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (

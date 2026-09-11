@@ -153,7 +153,7 @@ export function CollectionForm({ drivers, households, collectionId, initial }: C
               >
                 <input
                   type="checkbox"
-                  className="size-4 accent-emerald-600"
+                  className="size-4 accent-secondary"
                   checked={selected.has(h.id)}
                   onChange={() => toggle(h.id)}
                 />
