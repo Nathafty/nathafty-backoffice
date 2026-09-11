@@ -99,12 +99,19 @@ export async function adminOverview(): Promise<AdminOverview> {
   };
 }
 
-/** Nombre de collectes planifiées par semaine (lundi de départ), sur les `weeks` dernières semaines. */
+/**
+ * Nombre de collectes planifiées par semaine (lundi de départ), sur les `weeks` dernières semaines.
+ * Agrégation faite en SQL (RPC `admin_collections_weekly_counts`, migration
+ * `20260911_admin_overview_aggregates.sql`) plutôt qu'en rapatriant toutes les lignes pour
+ * sommer en JS. Borne haute désormais explicite (aujourd'hui) : plus de rapatriement de
+ * lignes futures hors de la plage affichée.
+ */
 export async function collectionsTrend(weeks = 10): Promise<WeekPoint[]> {
   const db = getServiceClient();
   const start = new Date();
   start.setDate(start.getDate() - (weeks - 1) * 7);
   const startIso = mondayIso(start);
+  const endIso = todayIso();
 
   const buckets = new Map<string, number>();
   for (let i = 0; i < weeks; i++) {
@@ -114,15 +121,17 @@ export async function collectionsTrend(weeks = 10): Promise<WeekPoint[]> {
   }
 
   try {
-    const { data } = await db.from("collections").select("scheduled_date").gte("scheduled_date", startIso);
-    for (const row of data ?? []) {
-      const date = (row as { scheduled_date: string | null }).scheduled_date;
-      if (!date) continue;
-      const week = mondayIso(new Date(date));
-      if (buckets.has(week)) buckets.set(week, (buckets.get(week) ?? 0) + 1);
+    const { data, error } = await db.rpc("admin_collections_weekly_counts", {
+      p_start: startIso,
+      p_end: endIso,
+    });
+    if (error) throw error;
+    for (const row of (data ?? []) as { week_start: string; collections_count: number }[]) {
+      // date_trunc('week', ...) renvoie déjà le lundi ISO, comme mondayIso() côté JS.
+      if (buckets.has(row.week_start)) buckets.set(row.week_start, Number(row.collections_count));
     }
   } catch {
-    /* table absente ou vide : buckets restent à 0 */
+    /* fonction/table absente : buckets restent à 0 */
   }
 
   return Array.from(buckets.entries()).map(([weekStart, count]) => ({
@@ -132,21 +141,25 @@ export async function collectionsTrend(weeks = 10): Promise<WeekPoint[]> {
   }));
 }
 
-/** Répartition des dépenses du mois courant par catégorie. */
+/**
+ * Répartition des dépenses du mois courant par catégorie.
+ * Agrégation faite en SQL (RPC `admin_expenses_by_category`) plutôt qu'en rapatriant
+ * toutes les lignes du mois pour sommer en JS.
+ */
 export async function expensesByCategory(): Promise<CategorySlice[]> {
   const db = getServiceClient();
-  const totals = new Map<string, number>();
+  const totals: { category: string; amount: number }[] = [];
   try {
-    const { data } = await db.from("expenses").select("category, amount_mru").gte("expense_date", monthStartIso());
-    for (const row of data ?? []) {
-      const r = row as { category: string; amount_mru: number };
-      totals.set(r.category, (totals.get(r.category) ?? 0) + Number(r.amount_mru ?? 0));
+    const { data, error } = await db.rpc("admin_expenses_by_category", { p_start: monthStartIso() });
+    if (error) throw error;
+    for (const row of (data ?? []) as { category: string; total_amount: number }[]) {
+      totals.push({ category: row.category, amount: Number(row.total_amount) });
     }
   } catch {
-    /* table absente : liste vide */
+    /* fonction/table absente : liste vide */
   }
-  return Array.from(totals.entries())
-    .map(([category, amount]) => ({ category, label: CATEGORY_LABEL[category] ?? category, amount }))
+  return totals
+    .map(({ category, amount }) => ({ category, label: CATEGORY_LABEL[category] ?? category, amount }))
     .sort((a, b) => b.amount - a.amount);
 }
 

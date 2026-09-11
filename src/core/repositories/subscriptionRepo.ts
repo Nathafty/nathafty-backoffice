@@ -39,13 +39,19 @@ export const subscriptionRepo = {
     return data;
   },
 
-  /** Tous les abonnements d'un ménage (plan inclus), du plus récent au plus ancien. */
-  async listByHousehold(db: SupabaseClient, householdId: string) {
-    const { data, error } = await db
+  /**
+   * Abonnements d'un ménage (plan inclus), du plus récent au plus ancien.
+   * `opts.limit` borne le nombre de lignes renvoyées (voir PERFORMANCE_AUDIT.md, P3) —
+   * l'historique complet n'a pas d'intérêt pour l'affichage client, seulement les plus récents.
+   */
+  async listByHousehold(db: SupabaseClient, householdId: string, opts: { limit?: number } = {}) {
+    let q = db
       .from("subscriptions")
       .select(SUB_SELECT)
       .eq("household_id", householdId)
       .order("start_date", { ascending: false });
+    if (opts.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
     if (error) throw error;
     return data ?? [];
   },

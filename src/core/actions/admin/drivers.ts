@@ -26,16 +26,15 @@ export async function getDriverDetail(id: number) {
   let housesTotal = 0;
   let housesDone = 0;
   if (collectionIds.length > 0) {
-    const total = await db
-      .from("houses_to_collect")
-      .select("*", { count: "exact", head: true })
-      .in("collection_id", collectionIds);
+    const [total, done] = await Promise.all([
+      db.from("houses_to_collect").select("*", { count: "exact", head: true }).in("collection_id", collectionIds),
+      db
+        .from("houses_to_collect")
+        .select("*", { count: "exact", head: true })
+        .in("collection_id", collectionIds)
+        .eq("status", "done"),
+    ]);
     housesTotal = total.count ?? 0;
-    const done = await db
-      .from("houses_to_collect")
-      .select("*", { count: "exact", head: true })
-      .in("collection_id", collectionIds)
-      .eq("status", "done");
     housesDone = done.count ?? 0;
   }
 

@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+const NOTIFICATION_COLUMNS = "id, user_id, type, title, body, data, read_at, created_at";
+
 export interface NotificationRow {
   id: number;
   user_id: string;
@@ -33,7 +35,7 @@ export const notificationRepo = {
     const { data, error } = await db
       .from("notifications")
       .insert(n)
-      .select("*")
+      .select(NOTIFICATION_COLUMNS)
       .single();
     if (error) throw error;
     return data as NotificationRow;
@@ -46,7 +48,7 @@ export const notificationRepo = {
   ): Promise<NotificationRow[]> {
     let query = db
       .from("notifications")
-      .select("*")
+      .select(NOTIFICATION_COLUMNS)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (opts.unread) query = query.is("read_at", null);
@@ -66,7 +68,7 @@ export const notificationRepo = {
       .update({ read_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", userId)
-      .select("*")
+      .select(NOTIFICATION_COLUMNS)
       .maybeSingle();
     if (error) throw error;
     return (data as NotificationRow | null) ?? null;

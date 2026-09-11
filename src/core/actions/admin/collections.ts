@@ -47,9 +47,12 @@ export async function listCollections(
 
 export async function getCollectionDetail(id: number) {
   const db = getServiceClient();
-  const collection = await collectionRepo.byId(db, id);
+  // Les deux requêtes ne dépendent que de `id` (déjà connu) : aucune dépendance réelle entre elles.
+  const [collection, houses] = await Promise.all([
+    collectionRepo.byId(db, id),
+    houseToCollectRepo.listByCollection(db, id),
+  ]);
   if (!collection) return null;
-  const houses = await houseToCollectRepo.listByCollection(db, id);
   return { collection, houses };
 }
 

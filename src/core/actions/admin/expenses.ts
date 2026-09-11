@@ -1,9 +1,26 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { getServiceClient } from "@/lib/supabase/service";
 import { expenseRepo, type ExpenseFilters } from "@/core/repositories/expenseRepo";
 import { vehicleRepo } from "@/core/repositories/vehicleRepo";
 import { driverRepo } from "@/core/repositories/driverRepo";
+
+/**
+ * Référentiels peu volatils utilisés par le select véhicule/collecteur du formulaire
+ * de dépense (voir PERFORMANCE_AUDIT.md, P2). 5 min de fraîcheur : un véhicule/collecteur
+ * ajouté ailleurs dans l'admin peut mettre jusqu'à 5 min à apparaître ici — compromis
+ * jugé raisonnable pour ce référentiel, pas d'invalidation à la demande branchée.
+ */
+const getCachedExpenseOptions = unstable_cache(
+  async () => {
+    const db = getServiceClient();
+    const [vehicles, drivers] = await Promise.all([vehicleRepo.listLite(db), driverRepo.listLite(db)]);
+    return { vehicles, drivers };
+  },
+  ["admin-expense-options"],
+  { revalidate: 300 },
+);
 
 export interface ExpenseItem {
   id: number;
@@ -64,7 +81,5 @@ export async function listExpenses(filters: ExpenseFilters = {}): Promise<Expens
 }
 
 export async function expenseOptions() {
-  const db = getServiceClient();
-  const [vehicles, drivers] = await Promise.all([vehicleRepo.listLite(db), driverRepo.listLite(db)]);
-  return { vehicles, drivers };
+  return getCachedExpenseOptions();
 }

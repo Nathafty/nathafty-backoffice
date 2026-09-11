@@ -1,9 +1,21 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { getServiceClient } from "@/lib/supabase/service";
 import { renewalRepo } from "@/core/repositories/renewalRepo";
 import { subscriptionRepo } from "@/core/repositories/subscriptionRepo";
 import { subscriptionPlanRepo, type PlanRow } from "@/core/repositories/subscriptionPlanRepo";
+
+/**
+ * Catalogue de plans peu volatil (voir PERFORMANCE_AUDIT.md, P2). 5 min de fraîcheur :
+ * une création/modification de plan via PlanDialog peut mettre jusqu'à 5 min à apparaître
+ * ici — compromis jugé raisonnable pour ce lot, pas d'invalidation à la demande branchée.
+ */
+const getCachedPlans = unstable_cache(
+  async () => subscriptionPlanRepo.listAll(getServiceClient()),
+  ["admin-subscription-plans"],
+  { revalidate: 300 },
+);
 
 export interface RenewalListItem {
   id: number;
@@ -70,5 +82,5 @@ export async function listSubscriptions(): Promise<SubscriptionListItem[]> {
 }
 
 export async function listPlans(): Promise<PlanRow[]> {
-  return subscriptionPlanRepo.listAll(getServiceClient());
+  return getCachedPlans();
 }

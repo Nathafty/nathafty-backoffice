@@ -11,9 +11,9 @@ export const subscriptionService = {
     return subscriptionPlanRepo.listActive(db);
   },
 
-  /** Abonnement courant (premier 'active', sinon le plus récent) + historique complet. */
+  /** Abonnement courant (premier 'active', sinon le plus récent) + historique (12 derniers). */
   async getCurrentAndHistory(db: SupabaseClient, householdId: string) {
-    const history = await subscriptionRepo.listByHousehold(db, householdId);
+    const history = await subscriptionRepo.listByHousehold(db, householdId, { limit: 12 });
     const current =
       history.find((s) => (s as { status?: string }).status === "active") ??
       history[0] ??
