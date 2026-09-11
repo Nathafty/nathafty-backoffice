@@ -57,11 +57,11 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Finances",
     items: [
       { href: "/admin/expenses", label: "Dépenses", icon: Wallet },
-      { href: "/admin/payments", label: "Paiements", icon: CreditCard, comingSoon: true },
+      { href: "/admin/payments", label: "Paiements", icon: CreditCard },
     ],
   },
   {
-    items: [{ href: "/admin/settings", label: "Paramètres", icon: Settings, comingSoon: true }],
+    items: [{ href: "/admin/settings", label: "Paramètres", icon: Settings }],
   },
 ];
 
